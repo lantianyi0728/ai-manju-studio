@@ -3,6 +3,7 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 *.log
+config.json
 _*.js
 _*.png
 _tmp*/

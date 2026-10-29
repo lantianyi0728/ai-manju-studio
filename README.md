@@ -5,14 +5,24 @@
 ## 怎么用
 
 1. 双击 `启动.bat`（会自己打开 http://127.0.0.1:5178）
-2. 右上角「模型配置」填一套 OpenAI 兼容接口：
-   - DeepSeek：`https://api.deepseek.com/v1` + `deepseek-chat`
-   - 通义千问：`https://dashscope.aliyuncs.com/compatible-mode/v1` + `qwen-plus`
-   - Kimi：`https://api.moonshot.cn/v1` + `moonshot-v1-32k`
-   - 也有「快速填入」按钮，点一下就填好地址和模型，只需补 Key
+2. 配置模型，三种方式任选：
+   - **网页填**（最快）：右上角「模型配置」，点「快速填入」选一家，补上 Key，点「测试连接」确认通了，保存。
+   - **配置文件**（推荐，一次搞定，以后不用管）：把 `config.example.json` 复制一份改名为 `config.json`，填好 `baseURL` / `apiKey` / `model`，重启即可。该文件已在 `.gitignore` 里，不会被提交。
+   - **环境变量**：`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`，优先级高于 `config.json`。
 3. 左侧填素材 → 选风格/画幅/时长 → 「生成整套漫剧素材」
 
+常用接口：
+
+| 服务 | Base URL | 模型名 |
+|---|---|---|
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-32k` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
+
 没配 Key 也能玩：点「先看示例成品」，看完整交付标准（内置一份 10 镜的《第七次末班车》全案）。
+
+> 生成一整套分镜约 8k-12k tokens，DeepSeek 大约几分钱一份。
 
 ## 输出什么
 
@@ -37,12 +47,13 @@
 ## 文件说明
 
 ```
-server.js        本地服务：静态托管 + LLM 流式转发（零依赖）
-启动.bat         一键启动
-index.html       页面
-styles.css       样式
-app.js           逻辑（含输出解析与分镜渲染）
-demo.js          内置示例成品
+server.js           本地服务：静态托管 + LLM 流式转发（零依赖）
+启动.bat            一键启动
+index.html          页面
+styles.css          样式
+app.js              逻辑（含输出解析与分镜渲染）
+demo.js             内置示例成品
+config.example.json 配置模板，复制成 config.json 使用
 ```
 
 ## 在线预览 vs 本地运行

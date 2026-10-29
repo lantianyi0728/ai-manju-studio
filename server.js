@@ -11,6 +11,31 @@ const { URL } = require('url');
 
 const PORT = Number(process.env.PORT) || 5178;
 const ROOT = __dirname;
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+
+/** 配置优先级：请求体 > 环境变量 > config.json */
+function loadServerConfig() {
+  let f = {};
+  try {
+    if (fs.existsSync(CONFIG_FILE)) f = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch (e) {
+    console.warn('[config] config.json 解析失败：' + e.message);
+  }
+  return {
+    baseURL: process.env.LLM_BASE_URL || f.baseURL || '',
+    apiKey: process.env.LLM_API_KEY || f.apiKey || '',
+    model: process.env.LLM_MODEL || f.model || ''
+  };
+}
+
+function humanizeUpstream(code, raw) {
+  if (code === 401) return 'API Key 无效或未填写（401）';
+  if (code === 403) return '该 Key 无权访问此模型（403）';
+  if (code === 404) return '接口地址或模型名不正确（404）。Base URL 一般以 /v1 结尾';
+  if (code === 429) return '请求太频繁或额度已用尽（429）';
+  if (code >= 500) return '上游服务异常（' + code + '），稍后重试';
+  return '上游返回 ' + code + '：' + String(raw || '').slice(0, 300);
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -71,7 +96,7 @@ function proxyStream(targetUrl, apiKey, payload, res) {
       let err = '';
       up.setEncoding('utf8');
       up.on('data', d => { if (err.length < 4000) err += d; });
-      up.on('end', () => sendJSON(res, up.statusCode || 502, { error: '上游接口返回 ' + up.statusCode + '：' + err.slice(0, 1500) }));
+      up.on('end', () => sendJSON(res, up.statusCode || 502, { error: humanizeUpstream(up.statusCode, err) }));
       return;
     }
     res.writeHead(200, {
@@ -92,6 +117,45 @@ function proxyStream(targetUrl, apiKey, payload, res) {
   req.end();
 }
 
+/** 联通性测试：发一个 max_tokens=1 的最小请求，只判能不能通 */
+function testConnection(targetUrl, apiKey, model, res) {
+  let u;
+  try { u = new URL(targetUrl); } catch (e) { return sendJSON(res, 200, { ok: false, error: '接口地址格式不正确：' + targetUrl }); }
+
+  const lib = u.protocol === 'https:' ? https : http;
+  const body = Buffer.from(JSON.stringify({
+    model,
+    messages: [{ role: 'user', content: 'ping' }],
+    max_tokens: 1,
+    stream: false
+  }), 'utf8');
+
+  const headers = { 'Content-Type': 'application/json', 'Content-Length': body.length };
+  if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+
+  const req = lib.request({
+    protocol: u.protocol,
+    hostname: u.hostname,
+    port: u.port || (u.protocol === 'https:' ? 443 : 80),
+    path: u.pathname + (u.search || ''),
+    method: 'POST',
+    headers
+  }, (up) => {
+    let d = '';
+    up.setEncoding('utf8');
+    up.on('data', c => { if (d.length < 4000) d += c; });
+    up.on('end', () => {
+      if (up.statusCode === 200) return sendJSON(res, 200, { ok: true, model });
+      sendJSON(res, 200, { ok: false, error: humanizeUpstream(up.statusCode, d) });
+    });
+  });
+
+  req.setTimeout(20000, () => req.destroy(new Error('连接超时（20s），检查网络或接口地址')));
+  req.on('error', e => sendJSON(res, 200, { ok: false, error: '连接失败：' + e.message }));
+  req.write(body);
+  req.end();
+}
+
 const server = http.createServer((req, res) => {
   const pathname = (req.url || '/').split('?')[0];
 
@@ -105,8 +169,19 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       let cfg;
       try { cfg = JSON.parse(raw || '{}'); } catch (e) { return sendJSON(res, 400, { error: '请求体不是合法 JSON' }); }
-      const { baseURL, apiKey, model, messages, temperature, maxTokens } = cfg;
-      if (!baseURL || !model) return sendJSON(res, 400, { error: '缺少接口地址或模型名' });
+
+      const sc = loadServerConfig();
+      const baseURL = cfg.baseURL || sc.baseURL;
+      const apiKey = cfg.apiKey || sc.apiKey;
+      const model = cfg.model || sc.model;
+      const { messages, temperature, maxTokens } = cfg;
+
+      if (!baseURL || !model) {
+        return sendJSON(res, 400, { error: '尚未配置模型：点右上角「模型配置」填写接口地址与模型名，或在本目录放一个 config.json' });
+      }
+      if (!apiKey) {
+        return sendJSON(res, 400, { error: '缺少 API Key：点右上角「模型配置」填入你的 Key' });
+      }
       if (!Array.isArray(messages) || !messages.length) return sendJSON(res, 400, { error: '缺少对话内容' });
 
       let url = String(baseURL).trim().replace(/\/+$/, '');
@@ -119,6 +194,35 @@ const server = http.createServer((req, res) => {
         max_tokens: maxTokens || 8192,
         stream: true
       }, res);
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/config') {
+    const sc = loadServerConfig();
+    return sendJSON(res, 200, {
+      baseURL: sc.baseURL,
+      model: sc.model,
+      hasKey: !!sc.apiKey,
+      ready: !!(sc.baseURL && sc.model && sc.apiKey)
+    });
+  }
+
+  if (req.method === 'POST' && pathname === '/api/test') {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', d => { body += d; if (body.length > 1024 * 1024) req.destroy(); });
+    req.on('end', () => {
+      let c = {};
+      try { c = JSON.parse(body || '{}'); } catch (e) {}
+      const sc = loadServerConfig();
+      const baseURL = c.baseURL || sc.baseURL;
+      const apiKey = c.apiKey || sc.apiKey;
+      const model = c.model || sc.model;
+      if (!baseURL || !model) return sendJSON(res, 200, { ok: false, error: '先填接口地址和模型名' });
+      let url = String(baseURL).trim().replace(/\/+$/, '');
+      if (!/\/chat\/completions$/.test(url)) url += '/chat/completions';
+      testConnection(url, apiKey, model, res);
     });
     return;
   }

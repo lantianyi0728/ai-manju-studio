@@ -441,6 +441,12 @@ textarea#srcText:focus{
   background:var(--line-2); color:var(--ink-2); transition:.15s;
 }
 .chip:hover{background:var(--brand-soft); color:var(--brand);}
+.test-row{display:flex; align-items:center; gap:10px; margin:-6px 0 10px;}
+.test-result{font-size:11.5px; line-height:1.5; flex:1; min-width:0; color:var(--ink-3);}
+.test-result.good{color:#0d7f52; font-weight:600;}
+.test-result.bad{color:#c2412f; font-weight:600;}
+.key-hint{font-size:11.5px; color:var(--ink-3); line-height:1.7; margin-bottom:16px;}
+.key-hint a{color:var(--brand); font-weight:600;}
 .modal-actions{display:flex; gap:9px; justify-content:flex-end;}
 
 .guide-list{padding-left:18px; display:flex; flex-direction:column; gap:11px;}

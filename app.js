@@ -8,6 +8,7 @@ const S = {
   src: 'idea',
   refs: [],
   cfg: { baseURL: '', apiKey: '', model: '' },
+  server: { baseURL: '', model: '', hasKey: false, ready: false },
   full: '',
   busy: false,
   lastRender: 0,
@@ -120,6 +121,24 @@ function loadCfg() {
     const raw = localStorage.getItem('manju.cfg');
     if (raw) S.cfg = Object.assign(S.cfg, JSON.parse(raw));
   } catch (e) {}
+  updateStatus();
+}
+
+/* 生效配置：浏览器里填的优先，其次用服务端 config.json / 环境变量 */
+function effectiveCfg() {
+  return {
+    baseURL: S.cfg.baseURL || S.server.baseURL || '',
+    apiKey: S.cfg.apiKey || '',
+    model: S.cfg.model || S.server.model || ''
+  };
+}
+
+function isReady() {
+  const c = effectiveCfg();
+  return !!(c.baseURL && c.model && (c.apiKey || S.server.hasKey));
+}
+
+function updateStatus() {
   const dot = $('#statusDot');
 
   if (IS_ONLINE_PREVIEW) {
@@ -127,13 +146,26 @@ function loadCfg() {
     dot.style.cursor = 'help';
     $('#statusText').textContent = '在线预览';
     dot.title = '在线预览版只包含界面与内置示例。真实生成请在本地双击「启动.bat」运行';
+    const g0 = $('#btnGoConfig');
+    if (g0) g0.hidden = true;
     return;
   }
 
-  const ready = !!(S.cfg.baseURL && S.cfg.model);
-  dot.classList.toggle('on', ready);
-  $('#statusText').textContent = ready ? '已接入 ' + S.cfg.model : '演示模式';
-  dot.title = ready ? S.cfg.baseURL : '未配置模型，点击右上角「模型配置」';
+  if (isReady()) {
+    const c = effectiveCfg();
+    dot.classList.add('on');
+    dot.style.cursor = 'default';
+    $('#statusText').textContent = '已接入 ' + c.model;
+    dot.title = c.baseURL + (S.server.hasKey && !S.cfg.apiKey ? '｜Key 来自服务端配置' : '');
+  } else {
+    dot.classList.remove('on');
+    dot.style.cursor = 'pointer';
+    $('#statusText').textContent = '演示模式';
+    dot.title = '未配置模型，点击右上角「模型配置」';
+  }
+
+  const g = $('#btnGoConfig');
+  if (g) g.hidden = isReady();
 }
 function saveCfg() {
   S.cfg = {
@@ -153,6 +185,56 @@ const PRESETS = {
   moonshot: { baseURL: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-32k' },
   openai: { baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini' }
 };
+
+async function testConn() {
+  const btn = $('#btnTest');
+  const out = $('#testResult');
+  const c = {
+    baseURL: $('#cfgBase').value.trim(),
+    apiKey: $('#cfgKey').value.trim(),
+    model: $('#cfgModel').value.trim()
+  };
+
+  if (!c.baseURL || !c.model) {
+    out.textContent = '先填接口地址和模型名';
+    out.className = 'test-result bad';
+    return;
+  }
+
+  btn.disabled = true;
+  out.textContent = '正在连接…';
+  out.className = 'test-result';
+
+  try {
+    const r = await fetch('/api/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(c)
+    });
+    const j = await r.json();
+    if (j.ok) {
+      out.textContent = '✓ 连接成功，' + (j.model || c.model) + ' 可以用了';
+      out.className = 'test-result good';
+    } else {
+      out.textContent = '✕ ' + j.error;
+      out.className = 'test-result bad';
+    }
+  } catch (e) {
+    out.textContent = '✕ 本地服务没响应，确认是用「启动.bat」打开的';
+    out.className = 'test-result bad';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function openCfgModal() {
+  if (IS_ONLINE_PREVIEW) { toast('在线预览版不支持真实生成，请在本地运行「启动.bat」', true); return; }
+  $('#cfgBase').value = S.cfg.baseURL || S.server.baseURL || '';
+  $('#cfgKey').value = S.cfg.apiKey || '';
+  $('#cfgModel').value = S.cfg.model || S.server.model || '';
+  $('#testResult').textContent = '';
+  openModal('#modal');
+}
 
 /* ---------------- 弹窗 ---------------- */
 function openModal(sel) { $(sel).hidden = false; document.body.style.overflow = 'hidden'; }
@@ -244,11 +326,16 @@ async function generate() {
     return;
   }
 
-  if (!S.cfg.baseURL || !S.cfg.model) {
-    toast('未配置模型，先为你展示示例成品');
-    runDemo();
+  if (!isReady()) {
+    toast('还没配置模型，填好 Key 才能真实生成', true);
+    $('#cfgBase').value = S.cfg.baseURL || S.server.baseURL || '';
+    $('#cfgKey').value = S.cfg.apiKey || '';
+    $('#cfgModel').value = S.cfg.model || S.server.model || '';
+    openModal('#modal');
     return;
   }
+
+  const eff = effectiveCfg();
 
   S.busy = true; S.full = ''; S.streamStart = Date.now();
   $('#btnGenerate').classList.add('loading');
@@ -265,9 +352,9 @@ async function generate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        baseURL: S.cfg.baseURL,
-        apiKey: S.cfg.apiKey,
-        model: S.cfg.model,
+        baseURL: eff.baseURL,
+        apiKey: eff.apiKey,
+        model: eff.model,
         messages: buildMessages(text),
         temperature: 0.8,
         maxTokens: 8192
@@ -610,6 +697,15 @@ function runDemo() {
 function init() {
   loadCfg();
 
+  // 读取服务端预置配置（config.json / 环境变量）
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(j => {
+      S.server = Object.assign({ baseURL: '', model: '', hasKey: false, ready: false }, j);
+      updateStatus();
+    })
+    .catch(() => {});
+
   if (location.protocol === 'file:') {
     setTimeout(() => toast('请用「启动.bat」打开，直接双击 html 无法调用模型', true), 700);
   }
@@ -673,12 +769,11 @@ function init() {
   });
 
   // 配置弹窗
-  $('#btnConfig').addEventListener('click', () => {
-    $('#cfgBase').value = S.cfg.baseURL || '';
-    $('#cfgKey').value = S.cfg.apiKey || '';
-    $('#cfgModel').value = S.cfg.model || '';
-    openModal('#modal');
-  });
+  $('#btnConfig').addEventListener('click', openCfgModal);
+  $('#statusDot').addEventListener('click', openCfgModal);
+  const goCfg = $('#btnGoConfig');
+  if (goCfg) goCfg.addEventListener('click', openCfgModal);
+  $('#btnTest').addEventListener('click', testConn);
   $('#btnGuide').addEventListener('click', () => openModal('#guideModal'));
   $('#btnSaveCfg').addEventListener('click', saveCfg);
   $$('[data-close]').forEach(el => el.addEventListener('click', e => {

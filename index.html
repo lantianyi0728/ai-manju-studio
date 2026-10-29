@@ -168,6 +168,7 @@
       </div>
       <h3>还没有成品</h3>
       <p>左侧填入灵感或原文，点击「生成整套漫剧素材」<br/>也可以先点「示例成品」看看交付标准。</p>
+      <button class="btn primary sm" id="btnGoConfig" style="margin-top:16px">配置模型，开始真实生成</button>
     </div>
 
     <div class="streaming" id="streaming" hidden>
@@ -247,6 +248,14 @@
         <button class="chip" data-preset="moonshot">Kimi</button>
         <button class="chip" data-preset="openai">OpenAI</button>
       </div>
+      <div class="test-row">
+        <button class="btn ghost sm" id="btnTest">测试连接</button>
+        <span class="test-result" id="testResult"></span>
+      </div>
+      <p class="key-hint">
+        没有 Key？<a href="https://platform.deepseek.com/" target="_blank" rel="noopener">DeepSeek 开放平台</a>
+        注册后即可创建，按量计费，生成一份完整分镜通常只要几分钱。
+      </p>
       <div class="modal-actions">
         <button class="btn ghost" data-close>取消</button>
         <button class="btn primary" id="btnSaveCfg">保存配置</button>
