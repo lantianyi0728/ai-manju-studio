@@ -13,12 +13,17 @@
 
 常用接口：
 
-| 服务 | Base URL | 模型名 |
-|---|---|---|
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
-| Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-32k` |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| 服务 | Base URL | 模型名 | 需要 Key |
+|---|---|---|---|
+| 本地 LM Studio | `http://127.0.0.1:1234/v1` | LM Studio 里已加载的模型名 | 否 |
+| 本地 Ollama | `http://127.0.0.1:11434/v1` | 如 `qwen2.5:7b` | 否 |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | 是 |
+| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` | 是 |
+| Kimi | `https://api.moonshot.cn/v1` | `moonshot-v1-32k` | 是 |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | 是 |
+
+> 指向 `127.0.0.1` / `localhost` 时不需要填 Key，本地推理服务一般不做鉴权。
+> 本地小模型（8B 级）能跑通全流程，但六区块格式的稳定性弱于在线大模型，建议正式出片用在线模型。
 
 没配 Key 也能玩：点「先看示例成品」，看完整交付标准（内置一份 10 镜的《第七次末班车》全案）。
 

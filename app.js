@@ -133,9 +133,14 @@ function effectiveCfg() {
   };
 }
 
+function isLocalEndpoint(url) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:|\/|$)/i.test(String(url || ''));
+}
+
 function isReady() {
   const c = effectiveCfg();
-  return !!(c.baseURL && c.model && (c.apiKey || S.server.hasKey));
+  if (!c.baseURL || !c.model) return false;
+  return !!(c.apiKey || S.server.hasKey || isLocalEndpoint(c.baseURL));
 }
 
 function updateStatus() {
@@ -180,6 +185,7 @@ function saveCfg() {
 }
 
 const PRESETS = {
+  local: { baseURL: 'http://127.0.0.1:1234/v1', model: 'deepseek/deepseek-r1-0528-qwen3-8b' },
   deepseek: { baseURL: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
   qwen: { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
   moonshot: { baseURL: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-32k' },

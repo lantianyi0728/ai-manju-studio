@@ -37,6 +37,11 @@ function humanizeUpstream(code, raw) {
   return '上游返回 ' + code + '：' + String(raw || '').slice(0, 300);
 }
 
+/** 本机端点（Ollama / LM Studio 等）通常不校验 Key */
+function isLocalEndpoint(url) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:|\/|$)/i.test(String(url || ''));
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -150,7 +155,7 @@ function testConnection(targetUrl, apiKey, model, res) {
     });
   });
 
-  req.setTimeout(20000, () => req.destroy(new Error('连接超时（20s），检查网络或接口地址')));
+  req.setTimeout(90000, () => req.destroy(new Error('连接超时（90s），本地模型首次加载较慢，稍后重试')));
   req.on('error', e => sendJSON(res, 200, { ok: false, error: '连接失败：' + e.message }));
   req.write(body);
   req.end();
@@ -179,7 +184,7 @@ const server = http.createServer((req, res) => {
       if (!baseURL || !model) {
         return sendJSON(res, 400, { error: '尚未配置模型：点右上角「模型配置」填写接口地址与模型名，或在本目录放一个 config.json' });
       }
-      if (!apiKey) {
+      if (!apiKey && !isLocalEndpoint(baseURL)) {
         return sendJSON(res, 400, { error: '缺少 API Key：点右上角「模型配置」填入你的 Key' });
       }
       if (!Array.isArray(messages) || !messages.length) return sendJSON(res, 400, { error: '缺少对话内容' });
@@ -204,7 +209,7 @@ const server = http.createServer((req, res) => {
       baseURL: sc.baseURL,
       model: sc.model,
       hasKey: !!sc.apiKey,
-      ready: !!(sc.baseURL && sc.model && sc.apiKey)
+      ready: !!(sc.baseURL && sc.model && (sc.apiKey || isLocalEndpoint(sc.baseURL)))
     });
   }
 

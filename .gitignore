@@ -6,4 +6,5 @@ Desktop.ini
 config.json
 _*.js
 _*.png
+_*.txt
 _tmp*/
