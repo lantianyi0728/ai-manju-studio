@@ -1,0 +1,10 @@
+{
+  "name": "ai-manju-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI漫剧剧本一键生成工具 · 本地工作台",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

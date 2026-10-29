@@ -1,0 +1,10 @@
+.workbuddy/
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+_gh.js
+_selftest.js
+_shot*.png
+_final.png
+_tmp*/

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>漫剧工坊 · AI漫剧剧本一键生成</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%235b4bff'/><path d='M30 32h40v36H30z' fill='none' stroke='white' stroke-width='7' stroke-linejoin='round'/><circle cx='50' cy='50' r='6' fill='white'/></svg>" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="3.5" y="7" width="25" height="18" rx="4" stroke="currentColor" stroke-width="2.2"/>
+        <circle cx="16" cy="16" r="3.4" fill="currentColor"/>
+        <path d="M8 12.5h4M20 19.5h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">漫剧工坊</span>
+      <span class="brand-sub">MANJU STUDIO</span>
+    </div>
+  </div>
+  <nav class="nav-actions">
+    <span class="status-dot" id="statusDot" title="未配置模型">
+      <i></i><span id="statusText">演示模式</span>
+    </span>
+    <button class="btn ghost sm" id="btnGuide">使用说明</button>
+    <button class="btn ghost sm" id="btnConfig">模型配置</button>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-inner">
+    <span class="pill">
+      <i class="pulse"></i> 专业AI视频导演 + 金牌AI漫剧编剧 双引擎
+    </span>
+    <h1>AI漫剧剧本<span class="grad">一键生成</span></h1>
+    <p class="hero-desc">
+      输入你的脑洞灵感、小说片段或者旧分镜脚本，即可自动生成全套漫剧生产素材：剧情梗概、角色三视图提示词、场景&amp;道具绘图提示词，
+      以及经过专业导演审核优化的完整版电影级分镜剧本。
+    </p>
+    <p class="hero-desc sub">
+      自动校准运镜机位、构图光影、动作细节、微表情、特效方案，附带镜头避坑禁止清单，适配AI视频生成，
+      解决镜头卡顿、画面违和、空间穿帮等问题，产出可以直接丢给AI视频工具渲染的成品分镜脚本。
+    </p>
+    <div class="hero-tags">
+      <span>剧情简介</span><span>角色三视图</span><span>场景提示词</span><span>道具提示词</span>
+      <span>电影级分镜</span><span>音色参考</span><span>镜头禁止项</span>
+    </div>
+  </div>
+</section>
+
+<main class="workspace">
+
+  <!-- ============ 输入区 ============ -->
+  <aside class="panel input-panel">
+    <div class="panel-head">
+      <h2>创作素材</h2>
+      <button class="link-btn" id="btnClearInput">清空</button>
+    </div>
+
+    <div class="tabs" id="srcTabs">
+      <button class="tab active" data-src="idea">脑洞灵感</button>
+      <button class="tab" data-src="novel">小说原文</button>
+      <button class="tab" data-src="storyboard">旧分镜脚本</button>
+    </div>
+
+    <textarea id="srcText" rows="9" placeholder="例：深夜末班公交车上，加班的女孩发现自己每天都会遇到同一个男人，直到某天她提前一站下车……"></textarea>
+
+    <div class="field-row">
+      <div class="field">
+        <label>画面风格</label>
+        <select id="styleSel">
+          <option value="电影级写实">电影级写实</option>
+          <option value="3D AIGC漫剧质感">3D AIGC漫剧质感</option>
+          <option value="古风玄幻">古风玄幻</option>
+          <option value="韩式都市写实">韩式都市写实</option>
+          <option value="日系动画">日系动画</option>
+          <option value="国漫燃向">国漫燃向</option>
+          <option value="赛博朋克">赛博朋克</option>
+          <option value="暗黑悬疑">暗黑悬疑</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>画幅比例</label>
+        <select id="ratioSel">
+          <option value="16:9">16:9 横屏</option>
+          <option value="9:16">9:16 竖屏</option>
+          <option value="2.39:1">2.39:1 宽银幕</option>
+          <option value="4:3">4:3 复古</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>成片时长</label>
+        <select id="durSel">
+          <option value="30-60秒 预告片">30-60秒 预告</option>
+          <option value="1-2分钟 短片" selected>1-2分钟 短片</option>
+          <option value="2-4分钟 完整单集">2-4分钟 单集</option>
+          <option value="4-8分钟 长单集">4-8分钟 长单集</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>镜头节奏</label>
+        <select id="paceSel">
+          <option value="克制沉稳，长镜头为主">克制沉稳</option>
+          <option value="张弛有度，标准剪辑" selected>张弛有度</option>
+          <option value="快切碎剪，强节奏">快切碎剪</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ref-block">
+      <div class="ref-head">
+        <label>参考图素材 <span class="hint">可选 · 用于锁定空间关系，杜绝跳轴穿帮</span></label>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/*" multiple hidden />
+        <span class="dz-icon">＋</span>
+        <span class="dz-text">点击或拖拽上传参考场景图 / 角色图</span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+    </div>
+
+    <label class="switch">
+      <input type="checkbox" id="visionChk" />
+      <span class="switch-box"></span>
+      <span class="switch-label">模型支持读图（视觉模型）<em>关闭时仅传递图片的文字空间描述</em></span>
+    </label>
+
+    <button class="btn primary block" id="btnGenerate">
+      <span class="btn-txt">生成整套漫剧素材</span>
+      <span class="btn-load">生成中<i></i><i></i><i></i></span>
+    </button>
+    <button class="btn ghost block sm" id="btnDemo">先看示例成品</button>
+
+    <div class="panel-foot">
+      <span>不改主线剧情 · 关键台词与核心动作原样保留</span>
+    </div>
+  </aside>
+
+  <!-- ============ 输出区 ============ -->
+  <section class="panel output-panel">
+    <div class="panel-head">
+      <h2>成品交付</h2>
+      <div class="out-actions" id="outActions" hidden>
+        <button class="btn ghost xs" id="btnCopyAll">复制全文</button>
+        <button class="btn ghost xs" id="btnDownload">下载 .txt</button>
+        <button class="btn ghost xs" id="btnNew">重新生成</button>
+      </div>
+    </div>
+
+    <div class="empty" id="emptyState">
+      <div class="empty-art">
+        <svg viewBox="0 0 120 90" fill="none">
+          <rect x="8" y="10" width="104" height="70" rx="8" stroke="currentColor" stroke-width="2" opacity=".25"/>
+          <rect x="20" y="24" width="30" height="42" rx="4" stroke="currentColor" stroke-width="2" opacity=".45"/>
+          <rect x="58" y="24" width="42" height="12" rx="3" fill="currentColor" opacity=".14"/>
+          <rect x="58" y="42" width="42" height="8" rx="3" fill="currentColor" opacity=".1"/>
+          <rect x="58" y="56" width="28" height="8" rx="3" fill="currentColor" opacity=".1"/>
+        </svg>
+      </div>
+      <h3>还没有成品</h3>
+      <p>左侧填入灵感或原文，点击「生成整套漫剧素材」<br/>也可以先点「示例成品」看看交付标准。</p>
+    </div>
+
+    <div class="streaming" id="streaming" hidden>
+      <div class="stream-head">
+        <span class="live"><i></i>引擎输出中</span>
+        <span class="stream-count" id="streamCount">0 字</span>
+      </div>
+      <pre class="stream-raw" id="streamRaw"></pre>
+    </div>
+
+    <div class="result" id="result" hidden></div>
+  </section>
+
+</main>
+
+<section class="pipeline">
+  <h2 class="pipeline-title">四步流水线，全部一次交付</h2>
+  <div class="steps">
+    <div class="step">
+      <span class="step-no">01</span>
+      <h4>剧情简介</h4>
+      <p>锁定主人公、核心人设与完整剧情走向，先给你一眼看懂的全片预览。</p>
+    </div>
+    <div class="step">
+      <span class="step-no">02</span>
+      <h4>素材提示词</h4>
+      <p>角色三视图（16:9 白底设定图）、场景图、关键道具图，正负向提示词分列。</p>
+    </div>
+    <div class="step">
+      <span class="step-no">03</span>
+      <h4>分镜剧本</h4>
+      <p>导演+编剧双重审核，校准镜头衔接、运镜机位、光影特效、动作与微表情。</p>
+    </div>
+    <div class="step">
+      <span class="step-no">04</span>
+      <h4>禁止项清单</h4>
+      <p>肢体穿模、面部崩坏、色温跳变、塑料质感等全部列为硬约束，直接可用。</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>漫剧工坊 · 本地工作台</span>
+  <span class="dot">·</span>
+  <span>素材仅保存在本机浏览器，不上传第三方</span>
+</footer>
+
+<!-- 配置弹窗 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>模型配置</h3>
+      <button class="icon-btn" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-note">
+        填写任意 <b>OpenAI 兼容</b> 接口即可启用真实生成。未配置时网站运行在「演示模式」，展示内置示例成品。
+        配置仅存于本机浏览器 localStorage。
+      </p>
+      <div class="field">
+        <label>接口地址 Base URL</label>
+        <input id="cfgBase" type="text" placeholder="https://api.deepseek.com/v1" />
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input id="cfgKey" type="password" placeholder="sk-..." />
+      </div>
+      <div class="field">
+        <label>模型名称</label>
+        <input id="cfgModel" type="text" placeholder="deepseek-chat" />
+      </div>
+      <div class="preset-row">
+        <span>快速填入：</span>
+        <button class="chip" data-preset="deepseek">DeepSeek</button>
+        <button class="chip" data-preset="qwen">通义千问</button>
+        <button class="chip" data-preset="moonshot">Kimi</button>
+        <button class="chip" data-preset="openai">OpenAI</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-close>取消</button>
+        <button class="btn primary" id="btnSaveCfg">保存配置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 说明弹窗 -->
+<div class="modal" id="guideModal" hidden>
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <h3>使用说明</h3>
+      <button class="icon-btn" data-close>✕</button>
+    </div>
+    <div class="modal-body">
+      <ol class="guide-list">
+        <li><b>准备素材</b>：粘贴脑洞灵感、小说原文或旧分镜脚本。粘贴旧分镜时，引擎会做审核+修正，而不是重写主线。</li>
+        <li><b>上传参考图</b>：每张图为它填写「空间位置」，例如「客厅主视角，沙发在左侧靠窗，餐桌在右后方」。镜头切换会遵守这套空间逻辑，杜绝跳轴。</li>
+        <li><b>选风格与时长</b>：风格决定整片质感锁定，时长决定分镜数量与单镜时长分配。</li>
+        <li><b>生成与交付</b>：输出分五块 —— 剧情简介 / 角色三视图 / 场景与道具 / 分镜剧本 / 镜头禁止项清单。支持复制全文与下载 .txt。</li>
+        <li><b>拿去渲染</b>：分镜表每镜含机位运镜、构图、画面内容、动作细节、光影、特效、台词、音效，可直接逐镜投喂 AI 视频工具。</li>
+      </ol>
+      <div class="guide-tip">
+        <b>红线：</b>引擎不擅自改动主线剧情，只优化镜头表达、运镜、画面细节与衔接节奏；你给的关键台词与核心动作会原样保留。
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="demo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
