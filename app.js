@@ -113,13 +113,24 @@ function copyText(text) {
 }
 
 /* ---------------- 配置 ---------------- */
+const IS_ONLINE_PREVIEW = /\.github\.io$/.test(location.hostname) || location.protocol === 'file:';
+
 function loadCfg() {
   try {
     const raw = localStorage.getItem('manju.cfg');
     if (raw) S.cfg = Object.assign(S.cfg, JSON.parse(raw));
   } catch (e) {}
-  const ready = !!(S.cfg.baseURL && S.cfg.model);
   const dot = $('#statusDot');
+
+  if (IS_ONLINE_PREVIEW) {
+    dot.classList.remove('on');
+    dot.style.cursor = 'help';
+    $('#statusText').textContent = '在线预览';
+    dot.title = '在线预览版只包含界面与内置示例。真实生成请在本地双击「启动.bat」运行';
+    return;
+  }
+
+  const ready = !!(S.cfg.baseURL && S.cfg.model);
   dot.classList.toggle('on', ready);
   $('#statusText').textContent = ready ? '已接入 ' + S.cfg.model : '演示模式';
   dot.title = ready ? S.cfg.baseURL : '未配置模型，点击右上角「模型配置」';
@@ -133,7 +144,7 @@ function saveCfg() {
   localStorage.setItem('manju.cfg', JSON.stringify(S.cfg));
   loadCfg();
   closeModal('#modal');
-  toast('配置已保存');
+  toast(IS_ONLINE_PREVIEW ? '配置已保存，但在线预览无法真实调用，请本地运行' : '配置已保存');
 }
 
 const PRESETS = {
@@ -226,6 +237,12 @@ async function generate() {
   if (S.busy) return;
   const text = $('#srcText').value.trim();
   if (!text) { toast('先填写故事灵感或原文', true); $('#srcText').focus(); return; }
+
+  if (IS_ONLINE_PREVIEW) {
+    toast('在线预览无法调用模型，已为你展示示例成品', true);
+    runDemo();
+    return;
+  }
 
   if (!S.cfg.baseURL || !S.cfg.model) {
     toast('未配置模型，先为你展示示例成品');

@@ -10,7 +10,7 @@ const path = require('path');
 const { URL } = require('url');
 
 const PORT = Number(process.env.PORT) || 5178;
-const ROOT = path.join(__dirname, 'public');
+const ROOT = __dirname;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -33,6 +33,7 @@ function sendJSON(res, code, obj) {
 function serveStatic(req, res, pathname) {
   let rel = decodeURIComponent(pathname.split('?')[0]);
   if (rel === '/' || rel === '') rel = '/index.html';
+  if (/^\/(\.git|node_modules|_)/.test(rel)) { res.writeHead(403); return res.end('Forbidden'); }
   const file = path.normalize(path.join(ROOT, rel));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(file, (err, data) => {

@@ -37,16 +37,21 @@
 ## 文件说明
 
 ```
-server.js            本地服务：静态托管 + LLM 流式转发（零依赖）
-启动.bat             一键启动
-public/index.html    页面
-public/styles.css    样式
-public/app.js        逻辑（含输出解析与分镜渲染）
-public/demo.js       内置示例成品
+server.js        本地服务：静态托管 + LLM 流式转发（零依赖）
+启动.bat         一键启动
+index.html       页面
+styles.css       样式
+app.js           逻辑（含输出解析与分镜渲染）
+demo.js          内置示例成品
 ```
+
+## 在线预览 vs 本地运行
+
+- **在线预览**（GitHub Pages）：只能看界面和内置示例成品，点生成会自动跑示例。因为没有后端代理，配了 Key 也调不通。
+- **本地运行**（双击 `启动.bat`）：完整功能，可接任意 OpenAI 兼容接口真实生成。
 
 ## 注意
 
 - 模型配置只存在本机浏览器 localStorage，不上传任何第三方
-- 必须通过 `启动.bat` 打开；直接双击 `public/index.html` 无法调用模型（浏览器跨域限制）
+- 必须通过 `启动.bat` 打开；直接双击 `index.html` 无法调用模型（浏览器跨域限制）
 - 端口被占用时改端口：`set PORT=5180 && node server.js`
